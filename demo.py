@@ -14,27 +14,14 @@ import torchvision.transforms as transforms
 import cv2
 
 def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_results/parsing_map_on_im.jpg'):
-    # Colors for all 20 parts
-    part_colors = [[255, 0, 0], [255, 85, 0], [255, 170, 0],
-                   [255, 0, 85], [255, 0, 170],
-                   [0, 255, 0], [85, 255, 0], [170, 255, 0],
-                   [0, 255, 85], [0, 255, 170],
-                   [0, 0, 255], [85, 0, 255], [170, 0, 255],
-                   [0, 85, 255], [0, 170, 255],
-                   [255, 255, 0], [255, 255, 85], [255, 255, 170],
-                   [255, 0, 255], [255, 85, 255], [255, 170, 255],
-                   [0, 255, 255], [85, 255, 255], [170, 255, 255]]
-
     im = np.array(im)
+    origin_im = im.copy().astype(np.uint8)
     vis_im = im.copy().astype(np.uint8)
     vis_parsing_anno = parsing_anno.copy().astype(np.uint8)
     vis_parsing_anno = cv2.resize(vis_parsing_anno, None, fx=stride, fy=stride, interpolation=cv2.INTER_NEAREST)
-    vis_parsing_anno_color = np.zeros((vis_parsing_anno.shape[0], vis_parsing_anno.shape[1], 3)) + 255
-    num_of_class = np.max(vis_parsing_anno)
 
     # 换整体背景 - 全黑
     index = np.where(vis_parsing_anno == 0)
-    # vis_parsing_anno_color[ index[ 0 ], index[ 1 ], : ] = [0,0,0]
     vis_im[ index[ 0 ], index[ 1 ], : ] = [0,0,0]
 
     # 换脖子 - 全黑
@@ -45,9 +32,34 @@ def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_res
     index = np.where(vis_parsing_anno == 16)
     vis_im[ index[ 0 ], index[ 1 ], : ] = [ 0, 0, 0 ]
 
-    # 保存人像部分，其余变黑
-    cv2.imwrite("head.jpg", cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
+    index = np.where(
+        (vis_parsing_anno == 1) |
+        (vis_parsing_anno == 2) |
+        (vis_parsing_anno == 3) |
+        (vis_parsing_anno == 4) |
+        (vis_parsing_anno == 5) |
+        (vis_parsing_anno == 6) |
+        (vis_parsing_anno == 7) |
+        (vis_parsing_anno == 8) |
+        (vis_parsing_anno == 9) |
+        (vis_parsing_anno == 10) |
+        (vis_parsing_anno == 11) |
+        (vis_parsing_anno == 12) |
+        (vis_parsing_anno == 13) |
+        (vis_parsing_anno == 15) |
+        (vis_parsing_anno == 17))
+    vis_im[ index[ 0 ], index[ 1 ], : ] = [ 255, 255, 255] # 其他全白
 
+    origin = Image.fromarray(origin_im)
+
+    mask = Image.fromarray(cv2.cvtColor(vis_im, cv2.COLOR_RGB2BGR))
+    mask = mask.convert("L")
+
+    empty = Image.new("RGBA", origin.size)
+    dst = Image.composite(origin, empty, mask)
+
+    # 保存人像部分，其余透明
+    dst.save(save_path[:-4] +'.png')
 
 
 def evaluate(respth='./res/test_res', dspth='./data', cp='model_final_diss.pth'):
@@ -75,8 +87,8 @@ def evaluate(respth='./res/test_res', dspth='./data', cp='model_final_diss.pth')
             # img = img.cuda()
             out = net(img)[0]
             parsing = out.squeeze(0).cpu().numpy().argmax(0)
-            print(parsing)
-            print(np.unique(parsing))
+            #print(parsing)
+            #print(np.unique(parsing))
 
             # 模型输出的mask， *10看着更加明显
             cv2.imwrite("model_mask.jpg", parsing * 10)
@@ -87,5 +99,4 @@ def evaluate(respth='./res/test_res', dspth='./data', cp='model_final_diss.pth')
 
 if __name__ == "__main__":
     evaluate(dspth='./image', cp='79999_iter.pth')
-
 
