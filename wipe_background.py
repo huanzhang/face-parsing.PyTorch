@@ -62,8 +62,8 @@ def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_res
 
     # 保存人像部分，其余透明
     dst.save(save_path[:-4] + '.png')
-    dst.convert("RGB")
-    dst.save(save_path[:-4] + ".jpg", "JPEG",
+    rgb_dst = dst.convert("RGB")
+    rgb_dst.save(save_path[:-4] + ".jpg", "JPEG",
              quality=100, optimize=True, progressive=True)
 
 
