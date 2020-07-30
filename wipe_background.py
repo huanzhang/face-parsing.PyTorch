@@ -13,24 +13,26 @@ from PIL import Image
 import torchvision.transforms as transforms
 import cv2
 
+
 def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_results/parsing_map_on_im.jpg'):
     im = np.array(im)
     origin_im = im.copy().astype(np.uint8)
     vis_im = im.copy().astype(np.uint8)
     vis_parsing_anno = parsing_anno.copy().astype(np.uint8)
-    vis_parsing_anno = cv2.resize(vis_parsing_anno, None, fx=stride, fy=stride, interpolation=cv2.INTER_NEAREST)
+    vis_parsing_anno = cv2.resize(
+        vis_parsing_anno, None, fx=stride, fy=stride, interpolation=cv2.INTER_NEAREST)
 
     # 换整体背景 - 全黑
     index = np.where(vis_parsing_anno == 0)
-    vis_im[ index[ 0 ], index[ 1 ], : ] = [0,0,0]
+    vis_im[index[0], index[1], :] = [0, 0, 0]
 
     # 换脖子 - 全黑
     index = np.where(vis_parsing_anno == 14)
-    vis_im[ index[ 0 ], index[ 1 ], : ] = [ 0, 0, 0 ]
+    vis_im[index[0], index[1], :] = [0, 0, 0]
 
     # 换衣服 - 全黑
     index = np.where(vis_parsing_anno == 16)
-    vis_im[ index[ 0 ], index[ 1 ], : ] = [ 0, 0, 0 ]
+    vis_im[index[0], index[1], :] = [0, 0, 0]
 
     index = np.where(
         (vis_parsing_anno == 1) |
@@ -48,7 +50,7 @@ def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_res
         (vis_parsing_anno == 13) |
         (vis_parsing_anno == 15) |
         (vis_parsing_anno == 17))
-    vis_im[ index[ 0 ], index[ 1 ], : ] = [ 255, 255, 255] # 其他全白
+    vis_im[index[0], index[1], :] = [255, 255, 255]  # 其他全白
 
     origin = Image.fromarray(origin_im)
 
@@ -59,7 +61,9 @@ def vis_parsing_maps(im, parsing_anno, stride, save_im=False, save_path='vis_res
     dst = Image.composite(origin, empty, mask)
 
     # 保存人像部分，其余透明
-    dst.save(save_path[:-4] +'.png')
+    dst.save(save_path[:-4] + '.png')
+    dst.save(save_path[:-4] + ".jpg", "JPEG",
+             quality=100, optimize=True, progressive=True)
 
 
 def evaluate(respth='./res/out', dspth='./data', cp='model_final_diss.pth'):
@@ -87,16 +91,15 @@ def evaluate(respth='./res/out', dspth='./data', cp='model_final_diss.pth'):
             img = img.cuda()
             out = net(img)[0]
             parsing = out.squeeze(0).cpu().numpy().argmax(0)
-            #print(parsing)
-            #print(np.unique(parsing))
+            # print(parsing)
+            # print(np.unique(parsing))
 
             # 模型输出的mask， *10看着更加明显
             cv2.imwrite("model_mask.jpg", parsing * 10)
 
-            vis_parsing_maps(image, parsing, stride=1, save_im=True, save_path=osp.join(respth, image_path))
-
+            vis_parsing_maps(image, parsing, stride=1, save_im=True,
+                             save_path=osp.join(respth, image_path))
 
 
 if __name__ == "__main__":
     evaluate(dspth='./image', cp='79999_iter.pth')
-
